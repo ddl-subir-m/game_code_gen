@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tower Rescue</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #333;
+            font-family: Arial, sans-serif;
+        }
+        canvas {
+            border: 2px solid #666;
+            background: #000;
+        }
+        #gameContainer {
+            position: relative;
+        }
+        #instructions {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            display: none;
+        }
+        #instructions.visible {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas"></canvas>
+        <div id="instructions">
+            <h2>Tower Rescue Controls</h2>
+            <p>← → : Move left/right</p>
+            <p>↑ : Climb up ladder</p>
+            <p>↓ : Climb down ladder</p>
+            <p>SPACE : Jump</p>
+            <p>Press ENTER to start</p>
+        </div>
+    </div>
+    <script src="game.js"></script>
+</body>
+</html>

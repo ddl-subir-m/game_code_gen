@@ -1,0 +1,534 @@
+I'll help you create BlockFall using modern web technologies. Let's build it with HTML5 Canvas and JavaScript.
+
+<forgeArtifact id="block-fall" title="BlockFall - Modern Block Puzzle Game">
+    <forgeAction type="file" filePath="index.html">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BlockFall</title>
+    <style>
+        body {
+            margin: 0;
+            background: #1a1a1a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: Arial, sans-serif;
+            color: white;
+        }
+        #game-container {
+            display: flex;
+            gap: 20px;
+        }
+        #game-info {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .info-box {
+            background: #2a2a2a;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        canvas {
+            background: #000;
+            border: 2px solid #333;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="game-info">
+            <div class="info-box">
+                <h3>Hold</h3>
+                <canvas id="holdCanvas" width="120" height="120"></canvas>
+            </div>
+            <div class="info-box">
+                <h3>Score: <span id="score">0</span></h3>
+                <h3>Level: <span id="level">0</span></h3>
+                <h3>Lines: <span id="lines">0</span></h3>
+            </div>
+        </div>
+        <canvas id="gameCanvas"></canvas>
+        <div id="game-info">
+            <div class="info-box">
+                <h3>Next</h3>
+                <canvas id="nextCanvas" width="120" height="360"></canvas>
+            </div>
+        </div>
+    </div>
+    <script src="game.js"></script>
+</body>
+</html>
+    </forgeAction>
+
+    <forgeAction type="file" filePath="game.js">
+// Constants
+const COLS = 10;
+const ROWS = 20;
+const BLOCK_SIZE = 30;
+const COLORS = {
+    I: '#00f0f0',
+    O: '#f0f000',
+    T: '#a000f0',
+    S: '#00f000',
+    Z: '#f00000',
+    J: '#0000f0',
+    L: '#f0a000'
+};
+
+// Canvas setup
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const holdCanvas = document.getElementById('holdCanvas');
+const holdCtx = holdCanvas.getContext('2d');
+const nextCanvas = document.getElementById('nextCanvas');
+const nextCtx = nextCanvas.getContext('2d');
+
+canvas.width = COLS * BLOCK_SIZE;
+canvas.height = ROWS * BLOCK_SIZE;
+
+// Game state
+let grid = Array(ROWS).fill().map(() => Array(COLS).fill(0));
+let score = 0;
+let level = 0;
+let lines = 0;
+let gameOver = false;
+let dropCounter = 0;
+let lastTime = 0;
+let dropInterval = 1000;
+let holdPiece = null;
+let canHold = true;
+let nextPieces = [];
+
+// Piece definitions
+const PIECES = {
+    I: {
+        shape: [[1, 1, 1, 1]],
+        color: COLORS.I
+    },
+    O: {
+        shape: [[1, 1],
+                [1, 1]],
+        color: COLORS.O
+    },
+    T: {
+        shape: [[0, 1, 0],
+                [1, 1, 1]],
+        color: COLORS.T
+    },
+    S: {
+        shape: [[0, 1, 1],
+                [1, 1, 0]],
+        color: COLORS.S
+    },
+    Z: {
+        shape: [[1, 1, 0],
+                [0, 1, 1]],
+        color: COLORS.Z
+    },
+    J: {
+        shape: [[1, 0, 0],
+                [1, 1, 1]],
+        color: COLORS.J
+    },
+    L: {
+        shape: [[0, 0, 1],
+                [1, 1, 1]],
+        color: COLORS.L
+    }
+};
+
+// Player piece
+const player = {
+    pos: {x: 0, y: 0},
+    piece: null,
+    score: 0
+};
+
+function createPiece(type) {
+    return {
+        pos: {x: COLS / 2 - Math.ceil(PIECES[type].shape[0].length / 2),
+              y: 0},
+        shape: PIECES[type].shape,
+        color: PIECES[type].color
+    };
+}
+
+function draw() {
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    drawMatrix(grid, {x: 0, y: 0});
+    if (player.piece) {
+        drawMatrix(player.piece.shape, player.piece.pos, player.piece.color);
+        drawGhost();
+    }
+}
+
+function drawMatrix(matrix, offset, color = null) {
+    matrix.forEach((row, y) => {
+        row.forEach((value, x) => {
+            if (value) {
+                ctx.fillStyle = color || '#fff';
+                ctx.fillRect((x + offset.x) * BLOCK_SIZE,
+                           (y + offset.y) * BLOCK_SIZE,
+                           BLOCK_SIZE - 1,
+                           BLOCK_SIZE - 1);
+            }
+        });
+    });
+}
+
+function drawGhost() {
+    const ghost = {
+        pos: {...player.piece.pos},
+        shape: player.piece.shape
+    };
+    
+    while (!collide(grid, ghost)) {
+        ghost.pos.y++;
+    }
+    ghost.pos.y--;
+    
+    ctx.globalAlpha = 0.2;
+    drawMatrix(ghost.shape, ghost.pos, player.piece.color);
+    ctx.globalAlpha = 1;
+}
+
+function collide(grid, player) {
+    const [m, o] = [player.shape, player.pos];
+    for (let y = 0; y < m.length; ++y) {
+        for (let x = 0; x < m[y].length; ++x) {
+            if (m[y][x] !== 0 &&
+                (grid[y + o.y] &&
+                grid[y + o.y][x + o.x]) !== 0) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+function merge(grid, player) {
+    player.shape.forEach((row, y) => {
+        row.forEach((value, x) => {
+            if (value !== 0) {
+                grid[y + player.pos.y][x + player.pos.x] = value;
+            }
+        });
+    });
+}
+
+function rotate(matrix) {
+    const N = matrix.length;
+    const result = matrix.map((row, i) =>
+        row.map((val, j) => matrix[N - 1 - j][i])
+    );
+    return result;
+}
+
+function playerRotate() {
+    const pos = player.piece.pos.x;
+    let offset = 1;
+    const original = player.piece.shape;
+    player.piece.shape = rotate(player.piece.shape);
+    
+    while (collide(grid, player.piece)) {
+        player.piece.pos.x += offset;
+        offset = -(offset + (offset > 0 ? 1 : -1));
+        if (offset > player.piece.shape[0].length) {
+            player.piece.shape = original;
+            player.piece.pos.x = pos;
+            return;
+        }
+    }
+}
+
+function playerDrop() {
+    player.piece.pos.y++;
+    if (collide(grid, player.piece)) {
+        player.piece.pos.y--;
+        merge(grid, player.piece);
+        playerReset();
+        sweep();
+        updateScore();
+    }
+    dropCounter = 0;
+}
+
+function playerMove(dir) {
+    player.piece.pos.x += dir;
+    if (collide(grid, player.piece)) {
+        player.piece.pos.x -= dir;
+    }
+}
+
+function playerHardDrop() {
+    while (!collide(grid, player.piece)) {
+        player.piece.pos.y++;
+    }
+    player.piece.pos.y--;
+    merge(grid, player.piece);
+    playerReset();
+    sweep();
+    updateScore();
+}
+
+function generatePiece() {
+    const pieces = 'ILJOTSZ';
+    return pieces[Math.floor(Math.random() * pieces.length)];
+}
+
+function playerReset() {
+    if (nextPieces.length < 4) {
+        nextPieces = [...nextPieces, ...Array(4).fill().map(() => generatePiece())];
+    }
+    
+    const piece = nextPieces.shift();
+    player.piece = createPiece(piece);
+    
+    if (collide(grid, player.piece)) {
+        gameOver = true;
+        grid.forEach(row => row.fill(0));
+        score = 0;
+        updateScore();
+    }
+    
+    drawNext();
+}
+
+function sweep() {
+    let rowCount = 0;
+    outer: for (let y = grid.length - 1; y > 0; --y) {
+        for (let x = 0; x < grid[y].length; ++x) {
+            if (grid[y][x] === 0) {
+                continue outer;
+            }
+        }
+        
+        const row = grid.splice(y, 1)[0].fill(0);
+        grid.unshift(row);
+        ++y;
+        rowCount++;
+    }
+    
+    if (rowCount > 0) {
+        score += [100, 300, 500, 800][rowCount - 1];
+        lines += rowCount;
+        level = Math.floor(lines / 10);
+        dropInterval = Math.max(50, 1000 - (level * 50));
+    }
+}
+
+function updateScore() {
+    document.getElementById('score').textContent = score;
+    document.getElementById('level').textContent = level;
+    document.getElementById('lines').textContent = lines;
+}
+
+function drawNext() {
+    nextCtx.fillStyle = '#2a2a2a';
+    nextCtx.fillRect(0, 0, nextCanvas.width, nextCanvas.height);
+    
+    nextPieces.slice(0, 3).forEach((piece, i) => {
+        const pieceObj = createPiece(piece);
+        const offsetY = i * 120 + 20;
+        
+        pieceObj.shape.forEach((row, y) => {
+            row.forEach((value, x) => {
+                if (value) {
+                    nextCtx.fillStyle = pieceObj.color;
+                    nextCtx.fillRect(
+                        x * BLOCK_SIZE + 30,
+                        y * BLOCK_SIZE + offsetY,
+                        BLOCK_SIZE - 1,
+                        BLOCK_SIZE - 1
+                    );
+                }
+            });
+        });
+    });
+}
+
+function drawHold() {
+    holdCtx.fillStyle = '#2a2a2a';
+    holdCtx.fillRect(0, 0, holdCanvas.width, holdCanvas.height);
+    
+    if (holdPiece) {
+        const pieceObj = createPiece(holdPiece);
+        pieceObj.shape.forEach((row, y) => {
+            row.forEach((value, x) => {
+                if (value) {
+                    holdCtx.fillStyle = pieceObj.color;
+                    holdCtx.fillRect(
+                        x * BLOCK_SIZE + 30,
+                        y * BLOCK_SIZE + 30,
+                        BLOCK_SIZE - 1,
+                        BLOCK_SIZE - 1
+                    );
+                }
+            });
+        });
+    }
+}
+
+function hold() {
+    if (!canHold) return;
+    
+    if (holdPiece === null) {
+        holdPiece = Object.keys(PIECES).find(key => 
+            JSON.stringify(PIECES[key].shape) === JSON.stringify(player.piece.shape));
+        playerReset();
+    } else {
+        const currentPiece = Object.keys(PIECES).find(key =>
+            JSON.stringify(PIECES[key].shape) === JSON.stringify(player.piece.shape));
+        const tempHold = holdPiece;
+        holdPiece = currentPiece;
+        player.piece = createPiece(tempHold);
+    }
+    
+    canHold = false;
+    drawHold();
+}
+
+function update(time = 0) {
+    if (gameOver) return;
+    
+    const deltaTime = time - lastTime;
+    lastTime = time;
+    
+    dropCounter += deltaTime;
+    if (dropCounter > dropInterval) {
+        playerDrop();
+    }
+    
+    draw();
+    requestAnimationFrame(update);
+}
+
+document.addEventListener('keydown', event => {
+    if (gameOver) {
+        if (event.keyCode === 82) { // R key
+            gameOver = false;
+            grid = Array(ROWS).fill().map(() => Array(COLS).fill(0));
+            score = 0;
+            level = 0;
+            lines = 0;
+            nextPieces = [];
+            holdPiece = null;
+            canHold = true;
+            playerReset();
+            update();
+        }
+        return;
+    }
+    
+    switch(event.keyCode) {
+        case 37: // Left arrow
+            playerMove(-1);
+            break;
+        case 39: // Right arrow
+            playerMove(1);
+            break;
+        case 40: // Down arrow
+            playerDrop();
+            break;
+        case 38: // Up arrow
+            playerRotate();
+            break;
+        case 32: // Space
+            playerHardDrop();
+            break;
+        case 67: // C key
+            hold();
+            break;
+    }
+});
+
+playerReset();
+update();
+    </forgeAction>
+
+    <forgeAction type="shell">
+python3 -m http.server 8000
+    </forgeAction>
+</forgeArtifact>
+
+Now you can play BlockFall by opening http://localhost:8000 in your web browser. Use the following controls:
+- Arrow Left/Right: Move piece
+- Arrow Down: Soft drop
+- Arrow Up: Rotate
+- Space: Hard drop
+- C: Hold piece
+- R: Restart game (when game over)The game is now complete and playable. Let me add some final enhancements to improve the gameplay experience:
+
+<forgeArtifact id="block-fall-enhancements" title="BlockFall - Audio and Visual Enhancements">
+    <forgeAction type="file" filePath="sounds.js">
+class SoundManager {
+    constructor() {
+        this.sounds = {
+            move: new Audio('data:audio/wav;base64,UklGRl4GAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YToGAACBhYqFbF1BOTgzLSUhGBEPCwoMDxUcJCs3PkZOV19qdYeWqLvM3Oz3/v///vr28Ozn4t3Y087KxsK+u7e0srGuq6mmop+cmZaUkZCOjoyLiomIh4aFhYSEhISEhISFhYWGh4eIiYqLjI2Oj5CRkpOUlZaXmJmam5ydnp+goaKjpKWmp6ipqqusra6vsLGys7S1tre4ubq7vL2+v8DBwsPExcbHyMnKy8zNzs/Q0dLT1NXW19jZ2tvc3d7f4OHi4+Tl5ufo6err7O3u7/Dx8vP09fb3+Pn6+/z9/v8AAQIDBAUGBwgJCgsMDQ4PEBESExQVFhcYGRobHB0eHyAhIiMkJSYnKCkqKywtLi8wMTIzNDU2Nzg5Ojs8PT4/QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl9gYWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXp7fH1+f4CBgoOEhYaHiImKi4yNjo+QkZKTlJWWl5iZmpucnZ6foKGio6SlpqeoqaqrrK2ur7CxsrO0tba3uLm6u7y9vr/AwcLDxMXGx8jJysvMzc7P0NHS09TV1tfY2drb3N3e3+Dh4uPk5ebn6Onq6+zt7u/w8fLz9PX29/j5+vv8/f7/AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8gISIjJCUmJygpKissLS4vMDEyMzQ1Njc4OTo7PD0+P0BBQkNERUZHSElKS0xNTk9QUVJTVFVWV1hZWltcXV5fYGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn+AgYKDhIWGh4iJiouMjY6PkJGSk5SVlpeYmZqbnJ2en6ChoqOkpaanqKmqq6ytrq+wsbKztLW2t7i5uru8vb6/wMHCw8TFxsfIycrLzM3Oz9DR0tPU1dbX2Nna29zd3t/g4eLj5OXm5+jp6uvs7e7v8PHy8/T19vf4+fr7/P3+/wABAgMEBQYHCAkKCwwNDg8QERITFBUWFxgZGhscHR4fICEiIyQlJicoKSorLC0uLzAxMjM0NTY3ODk6Ozw9Pj9AQUJDREVGR0hJSktMTU5PUFFSU1RVVldYWVpbXF1eX2BhYmNkZWZnaGlqa2xtbm9wcXJzdHV2d3h5ent8fX5/gIGCg4SFhoeIiYqLjI2Oj5CRkpOUlZaXmJmam5ydnp+goaKjpKWmp6ipqqusra6vsLGys7S1tre4ubq7vL2+v8DBwsPExcbHyMnKy8zNzs/Q0dLT1NXW19jZ2tvc3d7f4OHi4+Tl5ufo6err7O3u7/Dx8vP09fb3+Pn6+/z9/v8='),
+            rotate: new Audio('data:audio/wav;base64,UklGRpIEAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YW4EAACBhYqFbF1BOTgzLSUhGBEPCwoMDxUcJCs3PkZOV19qdYeWqLvM3Oz3/v///vr28Ozn4t3Y087KxsK+u7e0srGuq6mmop+cmZaUkZCOjoyLiomIh4aFhYSEhISEhISFhYWGh4eIiYqLjI2Oj5CRkpOUlZaXmJmam5ydnp+goaKjpKWmp6ipqqusra6vsLGys7S1tre4ubq7vL2+v8DBwsPExcbHyMnKy8zNzs/Q0dLT1NXW19jZ2tvc3d7f4OHi4+Tl5ufo6err7O3u7/Dx8vP09fb3+Pn6+/z9/v8AAQIDBAUGBwgJCgsMDQ4PEBESExQVFhcYGRobHB0eHyAhIiMkJSYnKCkqKywtLi8wMTIzNDU2Nzg5Ojs8PT4/QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl9gYWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXp7fH1+f4CBgoOEhYaHiImKi4yNjo+QkZKTlJWWl5iZmpucnZ6foKGio6SlpqeoqaqrrK2ur7CxsrO0tba3uLm6u7y9vr/AwcLDxMXGx8jJysvMzc7P0NHS09TV1tfY2drb3N3e3+Dh4uPk5ebn6Onq6+zt7u/w8fLz9PX29/j5+vv8/f7/AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8gISIjJCUmJygpKissLS4vMDEyMzQ1Njc4OTo7PD0+P0BBQkNERUZHSElKS0xNTk9QUVJTVFVWV1hZWltcXV5fYGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn+AgYKDhIWGh4iJiouMjY6PkJGSk5SVlpeYmZqbnJ2en6ChoqOkpaanqKmqq6ytrq+wsbKztLW2t7i5uru8vb6/wMHCw8TFxsfIycrLzM3Oz9DR0tPU1dbX2Nna29zd3t/g4eLj5OXm5+jp6uvs7e7v8PHy8/T19vf4+fr7/P3+/w=='),
+            drop: new Audio('data:audio/wav;base64,UklGRngDAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YVQDAACBhYqFbF1BOTgzLSUhGBEPCwoMDxUcJCs3PkZOV19qdYeWqLvM3Oz3/v///vr28Ozn4t3Y087KxsK+u7e0srGuq6mmop+cmZaUkZCOjoyLiomIh4aFhYSEhISEhISFhYWGh4eIiYqLjI2Oj5CRkpOUlZaXmJmam5ydnp+goaKjpKWmp6ipqqusra6vsLGys7S1tre4ubq7vL2+v8DBwsPExcbHyMnKy8zNzs/Q0dLT1NXW19jZ2tvc3d7f4OHi4+Tl5ufo6err7O3u7/Dx8vP09fb3+Pn6+/z9/v8AAQIDBAUGBwgJCgsMDQ4PEBESExQVFhcYGRobHB0eHyAhIiMkJSYnKCkqKywtLi8wMTIzNDU2Nzg5Ojs8PT4/QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl9gYWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXp7fH1+f4CBgoOEhYaHiImKi4yNjo+QkZKTlJWWl5iZmpucnZ6foKGio6SlpqeoqaqrrK2ur7CxsrO0tba3uLm6u7y9vr/AwcLDxMXGx8jJysvMzc7P0NHS09TV1tfY2drb3N3e3+Dh4uPk5ebn6Onq6+zt7u/w8fLz9PX29/j5+vv8/f7/AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8gISIjJCUmJygpKissLS4vMDEyMzQ1Njc4OTo7PD0+P0BBQkNERUZHSElKS0xNTk9QUVJTVFVWV1hZWltcXV5fYGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn+AgYKDhIWGh4iJiouMjY6PkJGSk5SVlpeYmZqbnJ2en6ChoqOkpaanqKmqq6ytrq+wsbKztLW2t7i5uru8vb6/wMHCw8TFxsfIycrLzM3Oz9DR0tPU1dbX2Nna29zd3t/g4eLj5OXm5+jp6uvs7e7v8PHy8/T19vf4+fr7/P3+/w=='),
+            clear: new Audio('data:audio/wav;base64,UklGRpYBAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YXIBAACBhYqFbF1BOTgzLSUhGBEPCwoMDxUcJCs3PkZOV19qdYeWqLvM3Oz3/v///vr28Ozn4t3Y087KxsK+u7e0srGuq6mmop+cmZaUkZCOjoyLiomIh4aFhYSEhISEhISFhYWGh4eIiYqLjI2Oj5CRkpOUlZaXmJmam5ydnp+goaKjpKWmp6ipqqusra6vsLGys7S1tre4ubq7vL2+v8DBwsPExcbHyMnKy8zNzs/Q0dLT1NXW19jZ2tvc3d7f4OHi4+Tl5ufo6err7O3u7/Dx8vP09fb3+Pn6+/z9/v8AAQIDBAUGBwgJCgsMDQ4PEBESExQVFhcYGRobHB0eHyAhIiMkJSYnKCkqKywtLi8wMTIzNDU2Nzg5Ojs8PT4/QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl9gYWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXp7fH1+fw==')
+        };
+        
+        Object.values(this.sounds).forEach(sound => {
+            sound.volume = 0.3;
+        });
+    }
+
+    play(soundName) {
+        const sound = this.sounds[soundName];
+        if (sound) {
+            sound.currentTime = 0;
+            sound.play().catch(() => {});
+        }
+    }
+}
+
+const soundManager = new SoundManager();
+    </forgeAction>
+
+    <forgeAction type="file" filePath="styles.css">
+body {
+    margin: 0;
+    background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    font-family: 'Arial', sans-serif;
+    color: #fff;
+}
+
+#game-container {
+    display: flex;
+    gap: 20px;
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 10px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+}
+
+.info-box {
+    background: rgba(42, 42, 42, 0.8);
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.info-box h3 {
+    margin: 0 0 10px 0;
+    font-size: 1.2em;
+    color: #ddd;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+canvas {
+    background: #000;
+    border: 2px

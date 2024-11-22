@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BlockFall</title>
+    <style>
+        body {
+            margin: 0;
+            background: #1a1a1a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: Arial, sans-serif;
+            color: white;
+        }
+        #game-container {
+            display: flex;
+            gap: 20px;
+        }
+        #game-info {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .info-box {
+            background: #2a2a2a;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        canvas {
+            background: #000;
+            border: 2px solid #333;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="game-info">
+            <div class="info-box-left">
+                <h3>Hold</h3>
+                <canvas id="holdCanvas" width="120" height="120"></canvas>
+            </div>
+            <div class="info-box">
+                <h3>Score: <span id="score">0</span></h3>
+                <h3>Level: <span id="level">0</span></h3>
+                <h3>Lines: <span id="lines">0</span></h3>
+            </div>
+        </div>
+        <canvas id="gameCanvas"></canvas>
+        <div id="game-info">
+            <div class="info-box-right">
+                <h3>Next</h3>
+                <canvas id="nextCanvas" width="120" height="360"></canvas>
+            </div>
+        </div>
+    </div>
+    <script src="game.js"></script>
+</body>
+</html>

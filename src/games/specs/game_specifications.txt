@@ -1,0 +1,648 @@
+=========================================
+BLOCKFALL (Tetris)
+=========================================
+
+Create a browser game called BlockFall that is described as follows:
+
+    # BlockFall Game Design Specification
+
+## 1. Game Overview
+BlockFall is a puzzle game where players manipulate falling geometric pieces to create complete horizontal lines that clear from the playing field.
+
+## 2. Core Game Mechanics
+
+### 2.1 Playing Field
+- Dimensions: 10 blocks wide X 20 blocks high
+- Hidden rows: Additional 2 rows above visible area for piece spawning
+- Grid: Composed of individual square blocks (cells)
+- Cell states: Empty or filled with a colored block
+
+### 2.2 Block Types
+Seven unique pieces, each composed of 4 blocks (where ■ represents one block):
+
+1. Long piece (cyan):
+
+■ ■ ■ ■
+
+
+2. Square piece (yellow):
+
+■ ■
+■ ■
+
+3. Cross piece (purple):
+
+  ■
+■ ■ ■
+
+4. Right snake (green):
+
+  ■ ■
+■ ■
+
+
+5. Left snake (red):
+
+■ ■
+  ■ ■
+
+
+6. Left hook (blue):
+
+■
+■
+■ ■
+
+
+7. Right hook (orange):
+
+  ■
+  ■
+■ ■
+
+
+### 2.3 Piece Behavior
+- Spawn position: Top-center of playing field
+- Initial orientation: Predefined for each piece
+- Fall speed: Constant downward movement at regular intervals
+- Lock delay: 0.5 seconds after piece touches surface before locking
+- Next piece preview: Shows upcoming 1-3 pieces
+
+## 3. Game Controls
+
+### 3.1 Basic Controls
+- Left/Right: Move piece horizontally
+- Down: Soft drop (accelerated fall)
+- Up: Rotate piece clockwise
+- Space: Hard drop (instant fall and lock)
+- Hold: Store current piece for later use (once per piece)
+
+### 3.2 Advanced Mechanics
+- Edge adjustment: Automatic horizontal adjustment during rotation near walls
+- Cross-spin: Special rotation technique for Cross piece
+- Hold queue: One piece can be held in reserve and swapped
+
+## 4. Scoring System
+
+### 4.1 Line Clear Points
+- Single line: 100 points
+- Double lines: 300 points
+- Triple lines: 500 points
+- Perfect clear (4 lines): 800 points
+
+### 4.2 Additional Scoring
+- Soft drop: 1 point per cell dropped
+- Hard drop: 2 points per cell dropped
+- Cross-spin bonus: 400 points
+- Back-to-back Perfect clear: 1.5x multiplier
+
+## 5. Game Progression
+
+### 5.1 Level System
+- Starting level: Player selectable (0-9)
+- Level increase: Every 10 lines cleared
+- Speed increase: 
+  - Level 0: 1.00 seconds per line
+  - Each level: ~0.1 second decrease
+  - Maximum speed at level 20
+
+### 5.2 Game Over Conditions
+- Piece locks above visible playing field
+- Cannot spawn new piece due to blocked cells
+
+## 6. Visual Feedback
+
+### 6.1 Essential Visual Elements
+- Shadow piece: Shows where current piece will land (semi-transparent)
+- Line clear animation: Simple flash or disappearing effect
+- Block colors: Distinct color for each piece type
+- Level number: Prominently displayed
+- Score display: Updated in real-time
+- Next piece preview: Clear preview window
+- Hold piece display: Clear hold piece window
+- Grid lines: Subtle lines showing block boundaries
+
+### 6.2 Visual Indicators
+- Piece lock indicator: Brief flash when piece locks
+- Line clear indicator: Simple animation for cleared lines
+- Game over indicator: Screen fade or simple "Game Over" text
+- Level up indicator: Simple visual notification
+
+## 7. Optional Features
+
+### 7.1 Multiplayer Elements
+- Versus mode with interference lines
+- Line clear attacks
+- Defense mechanisms
+
+### 7.2 Modern Additions
+- Save/resume functionality
+- High score table
+- Statistics tracking
+- Multiple game modes
+- Customizable controls
+- Visual theme options (different block styles and colors)
+
+## 8. Technical Considerations
+
+### 8.1 Game State
+Track and maintain:
+- Current piece position and rotation
+- Grid state (filled/empty cells)
+- Next piece queue
+- Hold piece
+- Current score
+- Current level
+- Lines cleared
+- Game phase (active/paused/over)
+
+### 8.2 Frame Rate
+- Minimum 60 FPS
+- Separate logic for piece movement and rendering
+- Handle irregular frame times gracefully
+
+### 8.3 Input Handling
+- Buffer inputs during animations
+- Auto-repeat for horizontal movement
+- Input priority system for simultaneous actions
+
+### 8.4 Randomization
+- Piece generation using 7-bag system
+- Each bag contains one of each piece type
+- Bags shuffled independently
+- Ensures maximum of 12 pieces between any two same pieces
+
+### 8.5 Collision Detection
+- Check for collisions during:
+  - Horizontal movement
+  - Rotation
+  - Downward movement
+  - Hard drops
+- Include wall and floor boundaries
+- Include existing locked pieces
+
+### 8.6 Grid Management
+- Efficient line clear detection
+- Quick grid updates
+- Proper handling of piece locking
+- Accurate shadow piece projection
+
+### 8.7 Rotation System
+Each piece rotates around its center point in 90-degree increments clockwise or counterclockwise. Initial rotations for each piece:
+
+1. Long piece (4 states):
+
+■ ■ ■ ■ ■
+        ■
+        ■
+
+2. Square piece (1 state):
+
+■ ■
+■ ■
+
+3. Cross piece (4 states):
+
+  ■     ■    ■ ■ ■    ■
+■ ■ ■   ■ ■      ■    ■ ■
+        ■                ■
+
+And so on for each piece type.
+
+=========================================
+LODERUNNER (Treasure Hunter)
+=========================================
+Create a browser game called Treasure Hunter that is as described
+
+    # TreasureHunter Game Design Specification
+
+## 1. Game Overview
+TreasureHunter is a platform-action game where a player navigates through multi-level environments, collecting treasures while avoiding or outsmarting enemies by digging temporary traps.
+
+## 2. Core Game Mechanics
+
+### 2.1 Playing Field
+- Grid-based layout: Each level is composed of a grid (28 blocks wide × 16 blocks high)
+- Block types:
+```
+□ Empty space (can move through)
+■ Solid brick (cannot be destroyed)
+▒ Breakable brick (can be dug)
+$ Treasure
+P Player starting position
+E Enemy starting position
+H Ladder
+= Platform (can walk and hang)
+```
+
+Example level segment:
+```
+■ ■ ■ ■ ■ ■ ■ ■
+■ $ □ □ H □ $ ■
+■ ▒ ▒ = = ▒ ▒ ■
+■ □ □ H □ □ E ■
+■ = = = = = = ■
+```
+
+### 2.2 Player Abilities
+- Movement:
+  - Walk left/right
+  - Climb up/down ladders
+  - Fall any distance safely
+  - Hang from platforms
+  - Dig left or right when next to breakable blocks
+
+### 2.3 Digging Mechanics
+- Player can dig blocks to their left or right at shoulder level
+- Dug blocks regenerate after 5 seconds
+- Enemies fall into dug holes
+- Enemies become trapped when falling into holes
+- Trapped enemies respawn at their starting position after a few seconds
+
+### 2.4 Enemy Behavior
+- Enemies pursue player using pathfinding
+- Enemies can:
+  - Walk left/right
+  - Climb ladders
+  - Fall any distance
+  - Pick up treasure
+  - Get trapped in holes
+- Enemies cannot:
+  - Dig blocks
+  - Attack player directly
+
+## 3. Game Controls
+
+### 3.1 Basic Controls
+- Left/Right arrows: Move horizontally
+- Up/Down arrows: Climb ladders
+- Z key: Dig left
+- X key: Dig right
+
+## 4. Scoring System
+
+### 4.1 Points
+- Collecting treasure: 100 points
+- Trapping enemy: 75 points
+- Completing level: 1500 points
+- Time bonus: Up to 500 points based on completion speed
+
+## 5. Game Progression
+
+### 5.1 Level System
+- Multiple levels with increasing difficulty
+- New levels unlock sequentially
+- Progress saved after each level completion
+- Level variations:
+  - More enemies
+  - Complex layouts
+  - Limited digging spots
+  - Time pressure
+  - Required collection percentage
+
+### 5.2 Game Over Conditions
+- Player touches enemy
+- Time runs out (if level has time limit)
+- All lives lost
+
+## 6. Visual Feedback
+
+### 6.1 Essential Visual Elements
+- Clear distinction between block types
+- Digging animation
+- Block regeneration warning
+- Enemy trap animation
+- Score display
+- Lives remaining
+- Time remaining
+- Level number
+- Collected/remaining treasure count
+
+### 6.2 Character Animations
+- Player:
+  - Walking
+  - Climbing
+  - Digging
+  - Falling
+  - Hanging
+- Enemy:
+  - Walking
+  - Climbing
+  - Falling
+  - Trapped
+  - Respawning
+
+## 7. Level Design Guidelines
+
+### 7.1 Core Principles
+- Each level must be completable
+- Multiple valid solutions
+- Risk/reward scenarios
+- Strategic treasure placement
+- Multiple escape routes
+- Balanced enemy placement
+
+### 7.2 Level Elements
+- Required elements:
+  - Start position
+  - All treasures accessible
+  - Clear path possible
+  - Multiple ladders
+  - Adequate digging opportunities
+- Optional elements:
+  - Hidden treasures
+  - Shortcuts
+  - Risk/reward paths
+  - Enemy traps
+
+## 8. Technical Considerations
+
+### 8.1 Game State
+Track and maintain:
+- Player position and state
+- Enemy positions and states
+- Block states (solid, broken, regenerating)
+- Collected treasures
+- Score
+- Time
+- Lives remaining
+
+### 8.2 Collision Detection
+- Grid-based collision for movement
+- State-based interaction checking:
+  - Player-Enemy collision
+  - Character-Ladder interaction
+  - Character-Platform interaction
+  - Treasure collection
+  - Digging validation
+
+### 8.3 Enemy AI
+- Pathfinding:
+  - A* algorithm for enemy movement
+  - Path recalculation when blocked
+  - Multiple enemy coordination
+- States:
+  - Patrolling
+  - Chasing
+  - Trapped
+  - Respawning
+
+### 8.4 Performance Optimization
+- Grid-based movement system
+- Efficient pathfinding updates
+- State-based animation system
+- Collision optimization using grid position
+
+### 8.5 Level Management
+- Level loading system
+- Progress saving
+- Score tracking
+- Time management
+- Enemy spawning and control
+
+## 9. Optional Features
+
+### 9.1 Gameplay Additions
+- Multiple character skins
+- Speed run mode
+- Challenge modes
+- Global leaderboards
+
+### 9.2 Advanced Mechanics
+- Special blocks
+- Power-ups
+- Different enemy types
+- Secret levels
+- Alternative dig mechanics
+
+=========================================
+TOWER RESCUE (Donkey Kong)
+=========================================
+Create a browser game called Tower Rescue that is described as follows:
+
+   # Tower Rescue Game Design Specification
+
+## 1. Game Overview
+Tower Rescue is an arcade-style platformer where a brave hero must climb a construction site to rescue someone trapped at the top while avoiding hazards thrown by a giant beast.
+
+## 2. Core Game Mechanics
+
+### 2.1 Playing Field
+- Structure composed of platforms connected by ladders
+- Four distinct levels with increasing difficulty
+- Screen layout example (using ASCII):
+```
+B = Beast, V = Victim, P = Platform, L = Ladder, H = Hero
+        B   V
+P P P P P P P P
+    L   L   L
+P P P P P P P P
+  L   L   L
+P P P P P P P P
+    L   L   L
+P P P P P P P P
+      H
+```
+
+### 2.2 Player Abilities
+- Movement:
+  - Walk left/right
+  - Climb up/down ladders
+  - Jump over small gaps
+  - Jump over rolling hazards (with proper timing)
+
+### 2.3 Hazard Types
+1. Rolling Barrels:
+```
+  O
+```
+- Roll down platforms
+- Follow platform paths
+- Fall down when reaching platform edges
+- Can be jumped over
+
+2. Fireballs:
+```
+  *
+```
+- Bounce unpredictably
+- Follow platforms and ladders
+- Can change direction randomly
+- Can be jumped over
+
+### 2.4 Platform Types
+1. Standard Platform:
+```
+====
+```
+- Basic walkable surface
+- Hazards roll across normally
+
+2. Broken Platform:
+```
+= =
+```
+- Has gaps that must be jumped
+- Hazards fall through gaps
+
+## 3. Game Controls
+
+### 3.1 Basic Controls
+- Left/Right: Move horizontally
+- Up: Climb ladder
+- Down: Descend ladder
+- Space: Jump
+- No diagonal movement
+
+## 4. Scoring System
+
+### 4.1 Points
+- Jumping over hazard: 100 points
+- Collecting bonus items: 300 points
+- Reaching midway point: 1500 points
+- Completing level: 3000 points
+- Time bonus: Up to 5000 points based on completion speed
+
+## 5. Game Progression
+
+### 5.1 Level Structure
+Each level features unique challenges:
+
+1. Construction Site (Level 1)
+```
+- Simple platform layout
+- Only rolling barrels
+- Regular spacing between ladders
+- Few bonus items
+```
+
+2. Factory Floor (Level 2)
+```
+- Conveyor belt platforms
+- Rolling barrels and fireballs
+- More complex ladder placement
+- Moderate bonus items
+```
+
+3. Engine Room (Level 3)
+```
+- Moving platforms
+- Multiple hazard types
+- Irregular ladder placement
+- Many bonus items
+```
+
+4. Final Tower (Level 4)
+```
+- All previous hazards
+- Most complex layout
+- Maximum difficulty
+- Special bonus opportunities
+```
+
+### 5.2 Game Over Conditions
+- Contact with any hazard
+- Falling too far
+- Time runs out
+- All lives lost
+
+## 6. Visual Feedback
+
+### 6.1 Essential Visual Elements
+- Lives remaining
+- Current score
+- Timer
+- Level number
+- Bonus items
+- Help indicators (Tutorial level)
+
+### 6.2 Animation Requirements
+Player animations:
+- Walking
+- Climbing
+- Jumping
+- Victory
+- Death
+
+Beast animations:
+- Throwing hazards
+- Victory
+- Defeat
+
+Hazard animations:
+- Rolling
+- Bouncing
+- Breaking
+- Falling
+
+## 7. Level Design Guidelines
+
+### 7.1 Platform Layout Rules
+- Maximum jump distance: 2 character widths
+- Minimum platform length: 3 character widths
+- Ladder spacing: At least 2 platforms apart
+- Platform spacing: Must allow proper hazard rolling
+- Escape routes: Always at least one safe path possible
+
+### 7.2 Hazard Placement
+- Spawn points clearly visible
+- Predictable initial trajectory
+- Fair warning before appearance
+- Balanced frequency based on level
+
+## 8. Technical Considerations
+
+### 8.1 Game State Management
+Track and maintain:
+- Player position and state
+- Beast position and state
+- Hazard positions and trajectories
+- Platform states
+- Score
+- Lives
+- Time
+- Bonus items
+
+### 8.2 Physics System
+- Gravity affects:
+  - Player jumps
+  - Hazard movement
+  - Falling mechanics
+- Collision detection:
+  - Player vs hazards
+  - Player vs platforms
+  - Hazards vs platforms
+  - Buffer zones for fair gameplay
+
+### 8.3 Hazard Management
+- Spawning system:
+  - Timed intervals
+  - Difficulty-based frequency
+  - Maximum concurrent hazards
+- Movement patterns:
+  - Rolling physics
+  - Bounce calculations
+  - Path finding
+  - Edge detection
+
+### 8.4 Performance Requirements
+- Consistent 60 FPS
+- Precise collision detection
+- Responsive controls
+- Predictable physics
+
+## 9. Optional Features
+
+### 9.1 Gameplay Additions
+- High score system
+- Challenge modes
+- Speed run mode
+- Practice mode
+- Alternative paths
+- Secret bonus stages
+
+### 9.2 Difficulty Options
+- Easy: Slower hazards, more time
+- Normal: Standard gameplay
+- Hard: Faster hazards, less time
+- Expert: Maximum challenge
