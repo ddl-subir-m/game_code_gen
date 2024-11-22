@@ -1,6 +1,6 @@
 # Game Code Generator
 
-An AI-powered game development system that generates complete, playable browser-based games using Claude 3.5 Sonnet. The system can create various classic arcade-style games with full game mechanics, graphics, and controls.
+An AI-powered game development system that generates complete, playable browser-based games using Claude 3.5 Sonnet. The system can create various classic arcade-style games with full game mechanics, graphics, and controls. Sample games are included in the `src/games` directory.
 
 ## Features
 
