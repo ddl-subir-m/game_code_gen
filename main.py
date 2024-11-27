@@ -81,7 +81,7 @@ async def main():
     finally:
         # Cleanup resources
         if 'chat' in locals():
-            if chat.ai and chat.ai.client:
+            if chat.ai and hasattr(chat.ai, 'client') and chat.ai.client:
                 await chat.ai.client.close()
         
         # Cancel all remaining tasks
